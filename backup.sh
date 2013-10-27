@@ -42,7 +42,6 @@ backupDirectory="backup"
 #dbPass[1]='ghjkkjh2678(27'
 ##################################
 
-
 dbHost[0]=''
 dbName[0]=''
 dbUser[0]=''
