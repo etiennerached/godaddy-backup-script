@@ -70,21 +70,14 @@ dbName[0]=''
 dbUser[0]=''
 dbPass[0]=''
 
-dbHost[1]=''
-dbName[1]=''
-dbUser[1]=''
-dbPass[1]=''
-
-dbHost[2]=''
-dbName[2]=''
-dbUser[2]=''
-dbPass[2]=''
-
 #Compress Databases (On=1 / Off=0)
 compressDatabases=1
 
 ##### Files Configuration #####
-#Directory (and subdirectories) to backup. By Default, the godaddy public directory is called "html"
+#$HOME should by default hold the path of your user home directory, in case it doesn't, or if you want to backup a specific directory, you can define it below:
+#HOME="/var/www"
+
+#Directory (and its subdirectories) to backup. By Default, the godaddy public directory is called "html" or "public_html"
 filesPath='html'
 
 #Archive files as Zip(0) or Tar(1)
@@ -96,11 +89,16 @@ compressFiles=0
 
 ##### FTP Configuration #####
 #Note: Using FTP is not secure, use it at your own risk. Your password will be stored in this file in plain text, and can be read by a simple ps command upon execution by others.
-#Godaddy blocks most of the outbound ports, including port 21. If you have a FTP with an unblocked port, you can use this option, otherwise keep it disabled.
 #Enable FTP Transfer (Yes=1 / No=0)
 enableFtpTransfer=0
 
-#FTP Host
+#Delete local files after uploading them to FTP (Yes=1 / No=0). This will only work if enableFtpTransfer is set to 1
+deleteFilesAfterTransfer=1
+
+#How many days should the backup remain in the ftp before it's deleted. Set to 0 to disable it. This will only work if enableFtpTransfer is set to 1
+deleteOldBackupsAfter=30
+
+#FTP Host - Fill the FTP details below. This is only required if enableFtpTransfer is set to 1
 FtpHost=''
 
 #FTP Port
@@ -113,17 +111,17 @@ FtpUser=''
 FtpPass=''
 
 #FTP Path
-FtpPath=''
-
+FtpPath='/'
 
 ################# End Of Configuration ###################
 
 
-################# Script Execution #####################
-# Edit at your own risk ###
+################# Script Execution ###################
+
+###!!! Edit at your own risk !!!###
 
 #Store Current Date
-Date=`date '+%m-%d-%Y_%H-%M'`
+Date=`date '+%Y-%m-%d_%H-%M'`
 
 #Create Final Backup Directory
 backupDirectory="$backupDirectory/$Date"
@@ -135,7 +133,7 @@ then
     echo "Directory Created"
 fi
 
-#Backup Databases
+##### Backup Databases #####
 for i in ${!dbHost[@]}
 do
   if [ $compressDatabases -eq 1 ]
@@ -147,9 +145,9 @@ do
       mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} > ${filename[i]}
   fi
 done
+##### END OF Backup Databases #####
 
-
-#Backup Files
+##### Backup Files #####
 cd $HOME/$filesPath
 
 #Zip
@@ -177,9 +175,10 @@ then
         tar -zcvf $filesname .
     fi
 fi
+##### END OF Backup Files #####
 
-
-#FTP Transfer
+######## FTP Transfer ########
+##### Transfer Files #####
 if [ $enableFtpTransfer -eq 1 ]
 then
     if [ "$FtpPath" == "" ]
@@ -188,13 +187,72 @@ then
     else
         FtpPath="$FtpPath/$Date"
     fi
-#Upload Database(s)
-ftp -nv $FtpHost $FtpPort  << END
+#Upload File & Database(s)
+ftp -npv $FtpHost $FtpPort  << END
 user $FtpUser $FtpPass
 mkdir $FtpPath
 cd $FtpPath
 lcd $HOME/$backupDirectory
+prompt off
 mput *
 bye
 END
-fi
+##### END OF Transfer Files #####
+
+##### Delete Old Backups #####
+    #get list of directories in ftp
+    if [ $deleteOldBackupsAfter -gt 0 ]
+    then
+        listing=`ftp -inp $FtpHost $FtpPort  << EOF
+user $FtpUser $FtpPass
+ls -1R
+bye
+EOF
+`
+        lista=( $listing )
+        toDelete=""
+
+        #loop through the list and compare
+        for i in ${!lista[@]}
+        do
+            dirToDate=`cut -d "_" -f 1 <<< "${lista[i]}"`
+            dateToTimestamp=`date -d "$dirToDate" +%s`
+	    if ! [[ $dateToTimestamp =~ ^-?[0-9]+$ ]]
+            then
+                continue
+            fi
+            currentDateInTimestamp=`date +"%s"`
+            dateDifference=$((currentDateInTimestamp-dateToTimestamp))
+            dateDifferenceInDays=$(($dateDifference/3600/24))
+            if [ $dateDifferenceInDays -gt $deleteOldBackupsAfter ]
+            then
+                toDelete="${toDelete}mdelete ${lista[i]}/*
+                rmdir ${lista[i]}
+                "
+            fi
+        done
+
+        #delete old files
+        if [ "$toDelete" != "" ]
+        then
+        ftp -inpv $FtpHost $FtpPort  << EOF
+user $FtpUser $FtpPass
+$toDelete
+bye
+EOF
+        fi #END OF if [ "$toDelete" != "" ]
+    fi #END OF if [ $deleteOldBackupsAfter -gt 0 ]
+##### END OF Delete Old Backups #####
+
+##### Delete local files #####
+    if [ $deleteFilesAfterTransfer -eq 1 ]
+    then
+	echo "Deleting local file: " $HOME/$backupDirectory;
+        rm -rf $HOME/$backupDirectory
+    fi #END [ $deleteFilesAfterTransfer -eq 1 ]
+##### END OF Delete local files #####
+
+fi #END [ $enableFtpTransfer -eq 1 ]
+######## END OF FTP Transfer ########
+
+################# END OF Script Execution ###################
