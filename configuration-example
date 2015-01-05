@@ -1,0 +1,34 @@
+Example:
+========
+my public directory is:
+/var/www/html
+
+My backup script is located in:
+/var/www/backup.sh
+
+My backup directory is at:
+/var/www/backup
+
+I backup the website at 9am server time every Monday and Thursday. so my cron job command is:
+0 9 * * 1,4  bash "/var/www/backup.sh"
+
+My script configuration is as follows:
+=====================================
+backupDirectory="backup"
+HOME="/var/www"
+dbHost[0]='localhost'
+dbName[0]='mydb'
+dbUser[0]='mydbuser'
+dbPass[0]='mydbpass'
+compressDatabases=1
+filesPath='html'
+ZipOrTar=1
+compressFiles=0
+enableFtpTransfer=1
+deleteFilesAfterTransfer=1
+deleteOldBackupsAfter=30
+FtpHost='myftp.url.com'
+FtpPort='21'
+FtpUser='ftpUser'
+FtpPass='mysecretftppass'
+FtpPath='/'
