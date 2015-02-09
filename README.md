@@ -8,7 +8,7 @@ The script was initially built for godaddy shared hosting. However, as of 2014-1
 
 Make sure to fill the "Configuration" section before running the script.
 
-In order to run the script automatically, a cron job needs be setup. To setup a Cron job, go to your Web Hosting Panel (CPanel, Plesk, etc...), and search for "Cron Job Manager". Create a new cron job, and choose how often do you want the backup to occur.
+In order to run the script automatically, a cron job needs to be setup. To setup a Cron job, go to your Web Hosting Panel (CPanel, Plesk, etc...), and search for "Cron Job Manager". Create a new cron job, and choose how often do you want the backup to occur.
 
 More info on how to install and run can be found on: http://www.tech-and-dev.com/2013/10/backup-godaddy-files-and-databases.html
 
