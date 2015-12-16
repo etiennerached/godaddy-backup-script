@@ -124,12 +124,12 @@ FtpPath='/'
 Date=`date '+%Y-%m-%d_%H-%M'`
 
 #Create Final Backup Directory
-backupDirectory="$backupDirectory/$Date"
+thisBackupDirectory="$backupDirectory/$Date"
 
 #Check if backup directory exist, otherwise create it
-if [ ! -d "$HOME/$backupDirectory" ]
+if [ ! -d "$HOME/$thisBackupDirectory" ]
 then
-    mkdir -p $HOME/$backupDirectory/
+    mkdir -p $HOME/$thisBackupDirectory/
     echo "Directory Created"
 fi
 
@@ -138,10 +138,10 @@ for i in ${!dbHost[@]}
 do
   if [ $compressDatabases -eq 1 ]
     then
-      filename[i]="$HOME/$backupDirectory/${dbName[$i]}_$Date.sql.gz"
+      filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql.gz"
       mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} | gzip > ${filename[i]}
     else
-      filename[i]="$HOME/$backupDirectory/${dbName[$i]}_$Date.sql"
+      filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql"
       mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} > ${filename[i]}
   fi
 done
@@ -155,10 +155,10 @@ if [ $ZipOrTar -eq 0 ]
 then
     if [ $compressFiles -eq 0 ]
     then
-        filesname="$HOME/$backupDirectory/files_$Date.zip"
+        filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
         zip -r -0 $filesname * .[^.]*
     else
-        filesname="$HOME/$backupDirectory/files_$Date.zip"
+        filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
         zip -r -9 $filesname * .[^.]*
     fi
 fi
@@ -168,10 +168,10 @@ if [ $ZipOrTar -eq 1 ]
 then
     if [ $compressFiles -eq 0 ]
     then
-        filesname="$HOME/$backupDirectory/files_$Date.tar"
+        filesname="$HOME/$thisBackupDirectory/files_$Date.tar"
         tar -cvf $filesname .
     else
-        filesname="$HOME/$backupDirectory/files_$Date.tar.gz"
+        filesname="$HOME/$thisBackupDirectory/files_$Date.tar.gz"
         tar -zcvf $filesname .
     fi
 fi
@@ -192,7 +192,7 @@ ftp -npv $FtpHost $FtpPort  << END
 user $FtpUser $FtpPass
 mkdir $FtpPath
 cd $FtpPath
-lcd $HOME/$backupDirectory
+lcd $HOME/$thisBackupDirectory
 prompt off
 mput *
 bye
@@ -247,8 +247,8 @@ EOF
 ##### Delete local files #####
     if [ $deleteFilesAfterTransfer -eq 1 ]
     then
-	echo "Deleting local file: " $HOME/$backupDirectory;
-        rm -rf $HOME/$backupDirectory
+	echo "Deleting local file: " $HOME/$thisBackupDirectory;
+        rm -rf $HOME/$thisBackupDirectory
     fi #END [ $deleteFilesAfterTransfer -eq 1 ]
 ##### END OF Delete local files #####
 
