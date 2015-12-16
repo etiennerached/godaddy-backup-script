@@ -87,6 +87,9 @@ ZipOrTar=1
 #Note: Godaddy scripts are usually interrupted after a specific time. Compressing/deflating the files will take more time to complete. Use zero if you have a huge website and the script is always interrupted.
 compressFiles=0
 
+#How many days should the backup remain locally before it's deleted. Set to 0 to disable it.
+deleteLocalOldBackupsAfter=365
+
 ##### FTP Configuration #####
 #Note: Using FTP is not secure, use it at your own risk. Your password will be stored in this file in plain text, and can be read by a simple ps command upon execution by others.
 #Enable FTP Transfer (Yes=1 / No=0)
@@ -124,12 +127,12 @@ FtpPath='/'
 Date=`date '+%Y-%m-%d_%H-%M'`
 
 #Create Final Backup Directory
-backupDirectory="$backupDirectory/$Date"
+thisBackupDirectory="$backupDirectory/$Date"
 
 #Check if backup directory exist, otherwise create it
-if [ ! -d "$HOME/$backupDirectory" ]
+if [ ! -d "$HOME/$thisBackupDirectory" ]
 then
-    mkdir -p $HOME/$backupDirectory/
+    mkdir -p $HOME/$thisBackupDirectory/
     echo "Directory Created"
 fi
 
@@ -138,10 +141,10 @@ for i in ${!dbHost[@]}
 do
   if [ $compressDatabases -eq 1 ]
     then
-      filename[i]="$HOME/$backupDirectory/${dbName[$i]}_$Date.sql.gz"
+      filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql.gz"
       mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} | gzip > ${filename[i]}
     else
-      filename[i]="$HOME/$backupDirectory/${dbName[$i]}_$Date.sql"
+      filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql"
       mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} > ${filename[i]}
   fi
 done
@@ -155,10 +158,10 @@ if [ $ZipOrTar -eq 0 ]
 then
     if [ $compressFiles -eq 0 ]
     then
-        filesname="$HOME/$backupDirectory/files_$Date.zip"
+        filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
         zip -r -0 $filesname * .[^.]*
     else
-        filesname="$HOME/$backupDirectory/files_$Date.zip"
+        filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
         zip -r -9 $filesname * .[^.]*
     fi
 fi
@@ -168,10 +171,10 @@ if [ $ZipOrTar -eq 1 ]
 then
     if [ $compressFiles -eq 0 ]
     then
-        filesname="$HOME/$backupDirectory/files_$Date.tar"
+        filesname="$HOME/$thisBackupDirectory/files_$Date.tar"
         tar -cvf $filesname .
     else
-        filesname="$HOME/$backupDirectory/files_$Date.tar.gz"
+        filesname="$HOME/$thisBackupDirectory/files_$Date.tar.gz"
         tar -zcvf $filesname .
     fi
 fi
@@ -192,7 +195,7 @@ ftp -npv $FtpHost $FtpPort  << END
 user $FtpUser $FtpPass
 mkdir $FtpPath
 cd $FtpPath
-lcd $HOME/$backupDirectory
+lcd $HOME/$thisBackupDirectory
 prompt off
 mput *
 bye
@@ -247,12 +250,42 @@ EOF
 ##### Delete local files #####
     if [ $deleteFilesAfterTransfer -eq 1 ]
     then
-	echo "Deleting local file: " $HOME/$backupDirectory;
-        rm -rf $HOME/$backupDirectory
+	echo "Deleting local file: " $HOME/$thisBackupDirectory;
+        rm -rf $HOME/$thisBackupDirectory
     fi #END [ $deleteFilesAfterTransfer -eq 1 ]
 ##### END OF Delete local files #####
 
 fi #END [ $enableFtpTransfer -eq 1 ]
 ######## END OF FTP Transfer ########
+
+##### Delete local old backups #####
+#get list of directories in backup folder
+if [ $deleteLocalOldBackupsAfter -gt 0 ]
+then
+    listing=`ls -1 $HOME/$backupDirectory`
+    lista=( $listing )
+    toDelete=""
+
+    #loop through the list and compare
+    for i in ${!lista[@]}
+    do
+        dirToDate=`cut -d "_" -f 1 <<< "${lista[i]}"`
+        dateToTimestamp=`date -d "$dirToDate" +%s`
+        if ! [[ $dateToTimestamp =~ ^-?[0-9]+$ ]]
+        then
+            continue
+        fi
+        currentDateInTimestamp=`date +"%s"`
+        dateDifference=$((currentDateInTimestamp-dateToTimestamp))
+        dateDifferenceInDays=$(($dateDifference/3600/24))
+        echo "${lista[i]} - $dateDifferenceInDays"
+        if [ $dateDifferenceInDays -gt $deleteLocalOldBackupsAfter ]
+        then
+            echo "  deleting"
+            rm -rf $HOME/$backupDirectory/${lista[i]}
+        fi
+    done
+fi #END OF if [ $deleteLocalOldBackupsAfter -gt 0 ]
+##### END OF Delete local old backups #####
 
 ################# END OF Script Execution ###################
