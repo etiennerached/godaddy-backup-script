@@ -87,6 +87,9 @@ ZipOrTar=1
 #Note: Godaddy scripts are usually interrupted after a specific time. Compressing/deflating the files will take more time to complete. Use zero if you have a huge website and the script is always interrupted.
 compressFiles=0
 
+#How many days should the backup remain locally before it's deleted. Set to 0 to disable it.
+deleteLocalOldBackupsAfter=365
+
 ##### FTP Configuration #####
 #Note: Using FTP is not secure, use it at your own risk. Your password will be stored in this file in plain text, and can be read by a simple ps command upon execution by others.
 #Enable FTP Transfer (Yes=1 / No=0)
@@ -254,5 +257,35 @@ EOF
 
 fi #END [ $enableFtpTransfer -eq 1 ]
 ######## END OF FTP Transfer ########
+
+##### Delete local old backups #####
+#get list of directories in backup folder
+if [ $deleteLocalOldBackupsAfter -gt 0 ]
+then
+    listing=`ls -1 $HOME/$backupDirectory`
+    lista=( $listing )
+    toDelete=""
+
+    #loop through the list and compare
+    for i in ${!lista[@]}
+    do
+        dirToDate=`cut -d "_" -f 1 <<< "${lista[i]}"`
+        dateToTimestamp=`date -d "$dirToDate" +%s`
+        if ! [[ $dateToTimestamp =~ ^-?[0-9]+$ ]]
+        then
+            continue
+        fi
+        currentDateInTimestamp=`date +"%s"`
+        dateDifference=$((currentDateInTimestamp-dateToTimestamp))
+        dateDifferenceInDays=$(($dateDifference/3600/24))
+        echo "${lista[i]} - $dateDifferenceInDays"
+        if [ $dateDifferenceInDays -gt $deleteLocalOldBackupsAfter ]
+        then
+            echo "  deleting"
+            rm -rf $HOME/$backupDirectory/${lista[i]}
+        fi
+    done
+fi #END OF if [ $deleteLocalOldBackupsAfter -gt 0 ]
+##### END OF Delete local old backups #####
 
 ################# END OF Script Execution ###################
