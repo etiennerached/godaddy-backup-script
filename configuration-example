@@ -3,10 +3,13 @@ Example:
 my public directory is:
 /var/www/html
 
+my personal non public files directory is:
+/var/www/private
+
 My backup script is located in:
 /var/www/backup.sh
 
-My backup directory is at:
+My backup directory is in:
 /var/www/backup
 
 I backup the website at 9am server time every Monday and Thursday. so my cron job command is:
@@ -20,8 +23,13 @@ dbHost[0]='localhost'
 dbName[0]='mydb'
 dbUser[0]='mydbuser'
 dbPass[0]='mydbpass'
+dbHost[1]='localhost'
+dbName[1]='mydb2'
+dbUser[1]='mydbuser2'
+dbPass[1]='mydbpass2'
 compressDatabases=1
-filesPath='html'
+filesPath[0]='html'
+filesPath[1]='private'
 ZipOrTar=1
 compressFiles=0
 enableFtpTransfer=1
@@ -31,4 +39,4 @@ FtpHost='myftp.url.com'
 FtpPort='21'
 FtpUser='ftpUser'
 FtpPass='mysecretftppass'
-FtpPath='/'
+FtpPath=''
