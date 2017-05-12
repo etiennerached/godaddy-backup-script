@@ -14,12 +14,15 @@
 #
 # The Initial Developer of the Original Code is
 # Etienne Rached
+# https://github.com/etiennerached
 # http://www.tech-and-dev.com/2013/10/backup-godaddy-files-and-databases.html
+#
 # Portions created by the Initial Developer are Copyright (C) 2013
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
-#
+# Andrew Parlane
+# https://github.com/andrewparlane
 # ***** END LICENSE BLOCK *****
 
 ###################### Configuration ######################
@@ -78,7 +81,13 @@ compressDatabases=1
 #HOME="/var/www"
 
 #Directory (and its subdirectories) to backup. By Default, the godaddy public directory is called "html" or "public_html"
-filesPath='html'
+#You can define more than one directory, this is useful mostly for MVC frameworks, where it's usually advisable to store the core framework outside of public_html
+#Example:
+#filesPath[0]='public_html'
+#filesPath[1]='yii'
+#filesPath[2]='anotherdir'
+filesPath[0]='public_html'
+
 
 #Archive files as Zip(0) or Tar(1)
 ZipOrTar=1
@@ -113,8 +122,8 @@ FtpUser=''
 #FTP Password
 FtpPass=''
 
-#FTP Path
-FtpPath='/'
+#FTP Path - Leave empty if you want to upload on the FTP root directory
+FtpPath=''
 
 ################# End Of Configuration ###################
 
@@ -151,7 +160,13 @@ done
 ##### END OF Backup Databases #####
 
 ##### Backup Files #####
-cd $HOME/$filesPath
+toCompress=""
+
+for i in ${!filesPath[@]}
+do
+  toCompress+="$HOME/${filesPath[$i]}"
+  toCompress+=" "
+done
 
 #Zip
 if [ $ZipOrTar -eq 0 ]
@@ -159,10 +174,10 @@ then
     if [ $compressFiles -eq 0 ]
     then
         filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
-        zip -r -0 $filesname * .[^.]*
+        zip -r -0 $filesname $toCompress
     else
         filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
-        zip -r -9 $filesname * .[^.]*
+        zip -r -9 $filesname $toCompress
     fi
 fi
 
@@ -172,10 +187,10 @@ then
     if [ $compressFiles -eq 0 ]
     then
         filesname="$HOME/$thisBackupDirectory/files_$Date.tar"
-        tar -cvf $filesname .
+        tar -cvf $filesname $toCompress
     else
         filesname="$HOME/$thisBackupDirectory/files_$Date.tar.gz"
-        tar -zcvf $filesname .
+        tar -zcvf $filesname $toCompress
     fi
 fi
 ##### END OF Backup Files #####
@@ -278,7 +293,7 @@ then
         currentDateInTimestamp=`date +"%s"`
         dateDifference=$((currentDateInTimestamp-dateToTimestamp))
         dateDifferenceInDays=$(($dateDifference/3600/24))
-        echo "${lista[i]} - $dateDifferenceInDays"
+       	#echo "${lista[i]} - $dateDifferenceInDays"
         if [ $dateDifferenceInDays -gt $deleteLocalOldBackupsAfter ]
         then
             echo "  deleting"
