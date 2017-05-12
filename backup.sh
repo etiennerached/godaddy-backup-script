@@ -97,7 +97,7 @@ ZipOrTar=1
 compressFiles=0
 
 #How many days should the backup remain locally before it's deleted. Set to 0 to disable it.
-deleteLocalOldBackupsAfter=365
+deleteLocalOldBackupsAfter=60
 
 ##### FTP Configuration #####
 #Note: Using FTP is not secure, use it at your own risk. Your password will be stored in this file in plain text, and can be read by a simple ps command upon execution by others.
