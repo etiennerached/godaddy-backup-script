@@ -64,13 +64,15 @@ toCompress=""
 
 for i in ${!filesPath[@]}
 do
-  toCompress+="$HOME/${filesPath[$i]}"
+  toCompress+="${filesPath[$i]}"
   toCompress+=" "
 done
 
 #Zip
 if [ $ZipOrTar -eq 0 ]
 then
+    # change directory to $HOME
+    pushd $HOME
     if [ $compressFiles -eq 0 ]
     then
         filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
@@ -79,6 +81,8 @@ then
         filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
         zip -r -9 $filesname $toCompress
     fi
+    # return to the previous directory
+    popd
 fi
 
 #Tar
@@ -87,10 +91,10 @@ then
     if [ $compressFiles -eq 0 ]
     then
         filesname="$HOME/$thisBackupDirectory/files_$Date.tar"
-        tar -cvf $filesname $toCompress
+        tar -cvf $filesname -C $HOME $toCompress
     else
         filesname="$HOME/$thisBackupDirectory/files_$Date.tar.gz"
-        tar -zcvf $filesname $toCompress
+        tar -zcvf $filesname -C $HOME $toCompress
     fi
 fi
 ##### END OF Backup Files #####
