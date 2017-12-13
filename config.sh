@@ -34,44 +34,34 @@
 backupDirectory="backup"
 
 ##### Database Configuration #####
-#Databases Information
+#The database logins are stored in seperate .cnf files
+#See example.cnf.
+#here we store the name of the database and the .cnf file
 #You can add as much databases information as you wish
 #The database information should be incremental and follow the below format:
 #############
-#dbHost[0]=''
 #dbName[0]=''
-#dbUser[0]=''
-#dbPass[0]=''
+#dbCnf[0]=''
 #
-#dbHost[1]=''
 #dbName[1]=''
-#dbUser[1]=''
-#dbPass[1]=''
+#dbCnf[1]=''
 #
-#dbHost[2]=''
 #dbName[2]=''
-#dbUser[2]=''
-#dbPass[2]=''
+#dbCnf[2]=''
 #############
 #
 #
 #Example:
 ##################################
-#dbHost[0]='localhost'
 #dbName[0]='database1'
-#dbUser[0]='user'
-#dbPass[0]='myhardtoguesspassword'
+#dbCnf[0]='example.cnf'
 #
-#dbHost[1]='db.domain.com'
-#dbName[1]='database1'
-#dbUser[1]='myusername'
-#dbPass[1]='ghjkkjh2678(27'
+#dbName[1]='my_database'
+#dbCnf[1]='dbconfig.cnf'
 ##################################
 
-dbHost[0]=''
 dbName[0]=''
-dbUser[0]=''
-dbPass[0]=''
+dbCnf[0]=''
 
 #Compress Databases (On=1 / Off=0)
 compressDatabases=1

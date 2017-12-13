@@ -46,15 +46,15 @@ then
 fi
 
 ##### Backup Databases #####
-for i in ${!dbHost[@]}
+for i in ${!dbName[@]}
 do
   if [ $compressDatabases -eq 1 ]
     then
       filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql.gz"
-      mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} | gzip > ${filename[i]}
+      mysqldump --defaults-extra-file=${dbCnf[$i]} ${dbName[$i]} | gzip > ${filename[i]}
     else
       filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql"
-      mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} > ${filename[i]}
+      mysqldump --defaults-extra-file=${dbCnf[$i]} ${dbName[$i]} > ${filename[i]}
   fi
 done
 ##### END OF Backup Databases #####

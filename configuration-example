@@ -19,14 +19,10 @@ My script configuration is as follows:
 =====================================
 backupDirectory="backup"
 HOME="/var/www"
-dbHost[0]='localhost'
 dbName[0]='mydb'
-dbUser[0]='mydbuser'
-dbPass[0]='mydbpass'
-dbHost[1]='localhost'
+dbCnf[0]='mydb.cnf'
 dbName[1]='mydb2'
-dbUser[1]='mydbuser2'
-dbPass[1]='mydbpass2'
+dbCnf[1]='mydb2.cnf'
 compressDatabases=1
 filesPath[0]='html'
 filesPath[1]='private'
@@ -40,3 +36,17 @@ FtpPort='21'
 FtpUser='ftpUser'
 FtpPass='mysecretftppass'
 FtpPath=''
+
+mydb.cnf contains:
+==================
+[mysqldump]
+host     = localhost
+user     = mydbuser
+password = mydbpass
+
+mydb2.cnf contains:
+===================
+[mysqldump]
+host     = localhost
+user     = mydbuser2
+password = mydbpass2
