@@ -68,17 +68,21 @@ do
   toCompress+=" "
 done
 
+# resulting name of the archive containing the backed up files
+# not including the extension
+filesname="$HOME/$thisBackupDirectory/files_$Date"
+
 #Zip
 if [ $ZipOrTar -eq 0 ]
 then
     # change directory to $HOME
     pushd $HOME
+    # .zip
+    filesname+=".zip"
     if [ $compressFiles -eq 0 ]
     then
-        filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
         zip -r -0 $filesname $toCompress
     else
-        filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
         zip -r -9 $filesname $toCompress
     fi
     # return to the previous directory
@@ -88,12 +92,12 @@ fi
 #Tar
 if [ $ZipOrTar -eq 1 ]
 then
+    filesname+=".tar"
     if [ $compressFiles -eq 0 ]
     then
-        filesname="$HOME/$thisBackupDirectory/files_$Date.tar"
         tar -cvf $filesname -C $HOME $toCompress
     else
-        filesname="$HOME/$thisBackupDirectory/files_$Date.tar.gz"
+        filesname+=".gz"
         tar -zcvf $filesname -C $HOME $toCompress
     fi
 fi
