@@ -223,12 +223,13 @@ done
 ##### Restore Databases #####
 for i in ${!dbName[@]}
 do
+    mysqlCmd="mysql --defaults-extra-file=$1/$(basename ${dbCnf[$i]}) ${dbName[$i]}"
     #gzipped?
     if [[ "${dbBackup[$i]}" == *.gz ]]
     then
-        gunzip -c ${dbBackup[$i]} | mysql --defaults-extra-file="$1/$(basename ${dbCnf[$i]})" ${dbName[$i]}
+        gunzip -c ${dbBackup[$i]} | ${mysqlCmd}
     else
-        cat ${dbBackup[$i]} | mysql --defaults-extra-file="$1/$(basename ${dbCnf[$i]})" ${dbName[$i]}
+        cat ${dbBackup[$i]} | ${mysqlCmd}
     fi
 done
 ##### END OF Backup Databases #####
