@@ -223,7 +223,28 @@ done
 ##### Restore Databases #####
 for i in ${!dbName[@]}
 do
-    mysqlCmd="mysql --defaults-extra-file=$1/$(basename ${dbCnf[$i]}) ${dbName[$i]}"
+    while true; do
+    read -p "Do you wish to restore database ${dbName[$i]} using backedup credentials file ${dbCnf[$i]}? [y/n] " yn
+        case $yn in
+            [Yy]* )
+                # use the credential file from the backup directory
+                mysqlCmd="mysql --defaults-extra-file=$1/$(basename ${dbCnf[$i]}) ${dbName[$i]}";
+                break;;
+            [Nn]* )
+                # enter the credentials manually
+                # first the host name (defaults to localhost)
+                read -p "Enter hostname [localhost]: " hostname
+                if [ -z ${hostname} ]
+                then
+                    hostname="localhost"
+                fi
+                # then the user name
+                read -p "Enter username: " username
+                mysqlCmd="mysql -h ${hostname} -u ${username} -p ${dbName[$i]}";
+                break;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
     #gzipped?
     if [[ "${dbBackup[$i]}" == *.gz ]]
     then
