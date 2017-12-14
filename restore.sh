@@ -162,6 +162,13 @@ do
     else
         cat ${dbBackup[$i]} | ${mysqlCmd}
     fi
+
+    #Check the result
+    if [ ! $? -eq 0 ]
+    then
+        echo "Failed to restore databasa ${dbName[$i]}" >&2
+        exit -1
+    fi
 done
 ##### END OF Backup Databases #####
 
