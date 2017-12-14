@@ -52,14 +52,24 @@ fi
 ##### Backup Databases #####
 for i in ${!dbName[@]}
 do
-  filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql"
-  mysqlCmd="mysqldump --defaults-extra-file=$BASEDIR/${dbCnf[$i]} ${dbName[$i]}"
-  if [ $compressDatabases -eq 1 ]
+  if [ -z ${dbName[$i]} ]
+  then
+    echo "dbName[$i] is empty, ignoring database" >&2
+  else
+    if [ -z ${dbCnf[$i]} ]
     then
-      filename+=".gz"
-      ${mysqlCmd} | gzip > ${filename[i]}
+      echo "dbCnf[$i] is empty, ignoring database" >&2
     else
-      ${mysqlCmd} > ${filename[i]}
+      filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql"
+      mysqlCmd="mysqldump --defaults-extra-file=$BASEDIR/${dbCnf[$i]} ${dbName[$i]}"
+      if [ $compressDatabases -eq 1 ]
+        then
+          filename+=".gz"
+          ${mysqlCmd} | gzip > ${filename[i]}
+        else
+          ${mysqlCmd} > ${filename[i]}
+      fi
+    fi
   fi
 done
 ##### END OF Backup Databases #####
@@ -116,7 +126,10 @@ cp "$BASEDIR/config.sh" "$HOME/$thisBackupDirectory/"
 #Then the database .cnf files
 for i in ${!dbName[@]}
 do
-    cp "$BASEDIR/${dbCnf[$i]}" "$HOME/$thisBackupDirectory/"
+    if [ ! -z ${dbCnf[$i]} ]
+    then
+        cp "$BASEDIR/${dbCnf[$i]}" "$HOME/$thisBackupDirectory/"
+    fi
 done
 
 

@@ -70,36 +70,41 @@ fi
 dbBackup=""
 for i in ${!dbName[@]}
 do
-    #How many .sql[.gz] files exist for this dbName
-    backupExists=0
-    for f in $1/${dbName[$i]}_*;
-    do
-        if [ -e $f ]
+    if [ -z ${dbName[$i]} ]
+    then
+        echo "dbName[$i] is empty, ignoring db" &>2
+    else
+        #How many .sql[.gz] files exist for this dbName
+        backupExists=0
+        for f in $1/${dbName[$i]}_*;
+        do
+            if [ -e $f ]
+            then
+                dbBackup[$i]=$f
+                backupExists+=1
+            fi
+        done
+
+        #Check that there's at least one
+        if [ ${backupExists} -eq 0 ]
         then
-            dbBackup[$i]=$f
-            backupExists+=1
+            echo "No backup exists for db ${dbName[$i]}" >&2
+            exit -1
         fi
-    done
 
-    #Check that there's at least one
-    if [ ${backupExists} -eq 0 ]
-    then
-        echo "No backup exists for db ${dbName[$i]}" >&2
-        exit -1
-    fi
+        #Check there's not more than one
+        if [ ! ${backupExists} -eq 1 ]
+        then
+            echo "More than one backup exists for ${dbName[$i]}" >&2
+            exit -1
+        fi
 
-    #Check there's not more than one
-    if [ ! ${backupExists} -eq 1 ]
-    then
-        echo "More than one backup exists for ${dbName[$i]}" >&2
-        exit -1
-    fi
-
-    #Check for the .cnf
-    if [ ! -e "$1/${dbCnf[$i]}" ]
-    then
-        echo "$1/${dbCnf[$i]} does not exist" >&2
-        exit -1
+        #Check for the .cnf
+        if [ ! -e "$1/${dbCnf[$i]}" ]
+        then
+            echo "$1/${dbCnf[$i]} does not exist" >&2
+            exit -1
+        fi
     fi
 done
 
@@ -130,44 +135,49 @@ then
 fi
 
 ##### Restore Databases #####
+
 for i in ${!dbName[@]}
 do
-    while true; do
-    read -p "Do you wish to restore database ${dbName[$i]} using backedup credentials file ${dbCnf[$i]}? [y/n] " yn
-        case $yn in
-            [Yy]* )
-                # use the credential file from the backup directory
-                mysqlCmd="mysql --defaults-extra-file=$1/$(basename ${dbCnf[$i]}) ${dbName[$i]}";
-                break;;
-            [Nn]* )
-                # enter the credentials manually
-                # first the host name (defaults to localhost)
-                read -p "Enter hostname [localhost]: " hostname
-                if [ -z ${hostname} ]
-                then
-                    hostname="localhost"
-                fi
-                # then the user name
-                read -p "Enter username: " username
-                mysqlCmd="mysql -h ${hostname} -u ${username} -p ${dbName[$i]}";
-                break;;
-            * ) echo "Please answer yes or no.";;
-        esac
-    done
-
-    #gzipped?
-    if [[ "${dbBackup[$i]}" == *.gz ]]
+    if [ ! -z ${dbName[$i]} ]
     then
-        gunzip -c ${dbBackup[$i]} | ${mysqlCmd}
-    else
-        cat ${dbBackup[$i]} | ${mysqlCmd}
-    fi
+        while true; do
+        read -p "Do you wish to use the backedup credentials file ${dbCnf[$i]}? [y/n] " yn
+            case $yn in
+                [Yy]* )
+                    # use the credential file from the backup directory
+                    mysqlCmd="mysql --defaults-extra-file=$1/$(basename ${dbCnf[$i]}) ${dbName[$i]}";
+                    break;;
+                [Nn]* )
+                    # enter the credentials manually
+                    # first the host name (defaults to localhost)
+                    read -p "Enter hostname [localhost]: " hostname
+                    if [ -z ${hostname} ]
+                    then
+                        hostname="localhost"
+                    fi
+                    # then the user name
+                    read -p "Enter username: " username
+                    mysqlCmd="mysql -h ${hostname} -u ${username} -p ${dbName[$i]}";
+                    break;;
+                * ) echo "Please answer yes or no.";;
+            esac
+        done
 
-    #Check the result
-    if [ ! $? -eq 0 ]
-    then
-        echo "Failed to restore databasa ${dbName[$i]}" >&2
-        exit -1
+        #gzipped?
+        if [[ "${dbBackup[$i]}" == *.gz ]]
+        then
+            gunzip -c ${dbBackup[$i]} | ${mysqlCmd}
+        else
+            cat ${dbBackup[$i]} | ${mysqlCmd}
+        fi
+
+        #Check the result
+        if [ ! $? -eq 0 ]
+        then
+            echo "Failed to restore databasa ${dbName[$i]}" >&2
+            exit -1
+        else
+        fi
     fi
 done
 ##### END OF Backup Databases #####
