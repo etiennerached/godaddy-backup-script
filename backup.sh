@@ -46,10 +46,13 @@ thisBackupDirectory="$backupDirectory/$Date"
 if [ ! -d "$HOME/$thisBackupDirectory" ]
 then
     mkdir -p $HOME/$thisBackupDirectory/
-    echo "Directory Created"
+    echo "Backup directory created: $HOME/$thisBackupDirectory/"
 fi
 
 ##### Backup Databases #####
+
+echo "Backing up databases"
+
 for i in ${!dbName[@]}
 do
   if [ -z ${dbName[$i]} ]
@@ -60,18 +63,34 @@ do
     then
       echo "dbCnf[$i] is empty, ignoring database" >&2
     else
+      echo "Attempting to backup database ${dbName[$i]}"
+
       filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql"
       mysqlCmd="mysqldump --defaults-extra-file=$BASEDIR/${dbCnf[$i]} ${dbName[$i]}"
-      if [ $compressDatabases -eq 1 ]
+
+      # do it
+      ${mysqlCmd} > ${filename[i]}
+
+      # check the error status
+      if [ ! $? -eq 0 ]
+      then
+        echo "Failed to backup ${dbName[$i]}" >&2
+        rm ${filename[i]}
+      else
+        if [ $compressDatabases -eq 1 ]
         then
-          filename+=".gz"
-          ${mysqlCmd} | gzip > ${filename[i]}
-        else
-          ${mysqlCmd} > ${filename[i]}
+          #gzip it and delete the non gzipped version
+          cat ${filename[$i]} | gzip > ${filename[$i]}.gz
+          rm ${filename[$i]}
+        fi
+        echo "Backed up ${dbName[$i]} OK"
       fi
     fi
   fi
 done
+
+echo "Finished backing up databases"
+
 ##### END OF Backup Databases #####
 
 ##### Backup Files #####
@@ -87,6 +106,10 @@ done
 # not including the extension
 filesname="$HOME/$thisBackupDirectory/files_$Date"
 
+echo "Archiving ${toCompress}, this may take some time"
+
+archiveResult=1
+
 #Zip
 if [ $ZipOrTar -eq 0 ]
 then
@@ -100,6 +123,7 @@ then
     else
         zip -q -r -9 $filesname $toCompress
     fi
+    archiveResult=$?
     # return to the previous directory
     popd
 fi
@@ -115,13 +139,29 @@ then
         filesname+=".gz"
         tar -zcf $filesname -C $HOME $toCompress
     fi
+    archiveResult=$?
 fi
+
+#Check the result
+if [ ! $? -eq 0 ]
+then
+    echo "Failed to archive ${toCompress}" >&2
+else
+    echo "Backed up files OK"
+fi
+
 ##### END OF Backup Files #####
 
 ##### Backup config #####
 
+echo "Backing up config files"
+
 #First the config.sh
 cp "$BASEDIR/config.sh" "$HOME/$thisBackupDirectory/"
+if [ ! $? -eq 0 ]
+then
+    echo "Failed to backup config.sh" >&2
+fi
 
 #Then the database .cnf files
 for i in ${!dbName[@]}
@@ -129,9 +169,12 @@ do
     if [ ! -z ${dbCnf[$i]} ]
     then
         cp "$BASEDIR/${dbCnf[$i]}" "$HOME/$thisBackupDirectory/"
+        if [ ! $? -eq 0 ]
+        then
+            echo "Failed to backup ${dbCnf[$i]}" >&2
+        fi
     fi
 done
-
 
 ##### END OF Backup config #####
 
@@ -139,6 +182,7 @@ done
 ##### Transfer Files #####
 if [ $enableFtpTransfer -eq 1 ]
 then
+    echo "Starting FTP transfer, this may take a while"
     if [ "$FtpPath" == "" ]
     then
         FtpPath="$Date"
@@ -155,6 +199,13 @@ prompt off
 mput *
 bye
 END
+
+#Check result
+if [ ! $? -eq 0 ]
+then
+    echo "Failed to transfer backup over FTP" >&2
+fi
+
 ##### END OF Transfer Files #####
 
 ##### Delete Old Backups #####
@@ -236,11 +287,13 @@ then
        	#echo "${lista[i]} - $dateDifferenceInDays"
         if [ $dateDifferenceInDays -gt $deleteLocalOldBackupsAfter ]
         then
-            echo "  deleting"
+            echo "deleting $HOME/$backupDirectory/${lista[i]} since it is older than ${deleteLocalOldBackupsAfter} days"
             rm -rf $HOME/$backupDirectory/${lista[i]}
         fi
     done
 fi #END OF if [ $deleteLocalOldBackupsAfter -gt 0 ]
 ##### END OF Delete local old backups #####
+
+echo "Backup completed"
 
 ################# END OF Script Execution ###################
