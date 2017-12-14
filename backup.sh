@@ -29,8 +29,12 @@
 
 ###!!! Edit at your own risk !!!###
 
+#What directory is this script in?
+#We use this so we know where our config.sh and any db .cnf files are
+BASEDIR=$(dirname "$0")
+
 # Get our configuration
-. ./config.sh
+. $BASEDIR/config.sh
 
 #Store Current Date
 Date=`date '+%Y-%m-%d_%H-%M'`
@@ -52,9 +56,9 @@ do
   if [ $compressDatabases -eq 1 ]
     then
       filename+=".gz"
-      mysqldump --defaults-extra-file=${dbCnf[$i]} ${dbName[$i]} | gzip > ${filename[i]}
+      mysqldump --defaults-extra-file="$BASEDIR/${dbCnf[$i]}" ${dbName[$i]} | gzip > ${filename[i]}
     else
-      mysqldump --defaults-extra-file=${dbCnf[$i]} ${dbName[$i]} > ${filename[i]}
+      mysqldump --defaults-extra-file="$BASEDIR/${dbCnf[$i]}" ${dbName[$i]} > ${filename[i]}
   fi
 done
 ##### END OF Backup Databases #####
