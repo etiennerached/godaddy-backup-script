@@ -107,6 +107,20 @@ then
 fi
 ##### END OF Backup Files #####
 
+##### Backup config #####
+
+#First the config.sh
+cp "$BASEDIR/config.sh" "$HOME/$thisBackupDirectory/"
+
+#Then the database .cnf files
+for i in ${!dbName[@]}
+do
+    cp "$BASEDIR/${dbCnf[$i]}" "$HOME/$thisBackupDirectory/"
+done
+
+
+##### END OF Backup config #####
+
 ######## FTP Transfer ########
 ##### Transfer Files #####
 if [ $enableFtpTransfer -eq 1 ]
