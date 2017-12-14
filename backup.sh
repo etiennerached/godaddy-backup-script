@@ -96,9 +96,9 @@ then
     filesname+=".zip"
     if [ $compressFiles -eq 0 ]
     then
-        zip -r -0 $filesname $toCompress
+        zip -q -r -0 $filesname $toCompress
     else
-        zip -r -9 $filesname $toCompress
+        zip -q -r -9 $filesname $toCompress
     fi
     # return to the previous directory
     popd
@@ -110,10 +110,10 @@ then
     filesname+=".tar"
     if [ $compressFiles -eq 0 ]
     then
-        tar -cvf $filesname -C $HOME $toCompress
+        tar -cf $filesname -C $HOME $toCompress
     else
         filesname+=".gz"
-        tar -zcvf $filesname -C $HOME $toCompress
+        tar -zcf $filesname -C $HOME $toCompress
     fi
 fi
 ##### END OF Backup Files #####
