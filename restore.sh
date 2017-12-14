@@ -136,11 +136,14 @@ fi
 
 ##### Restore Databases #####
 
+echo "Restoring databases"
+
 for i in ${!dbName[@]}
 do
     if [ ! -z ${dbName[$i]} ]
     then
         while true; do
+        echo "Attempting to restore database ${dbName[$i]}"
         read -p "Do you wish to use the backedup credentials file ${dbCnf[$i]}? [y/n] " yn
             case $yn in
                 [Yy]* )
@@ -177,12 +180,18 @@ do
             echo "Failed to restore databasa ${dbName[$i]}" >&2
             exit -1
         else
+            echo "Database ${dbName[$i]} restored OK"
         fi
     fi
 done
-##### END OF Backup Databases #####
+
+echo "Restored all databases"
+
+##### END OF Restore Databases #####
 
 ##### restore Files #####
+
+echo "Restoring files"
 
 #We first extract everything to a temporary directory
 tmpRestoreDir="$HOME/tmp_restore_dir_$Date"
@@ -220,6 +229,8 @@ then
     exit -1
 fi
 
+echo "Extracting ${filesBackup} to ${tmpRestoreDir} this may take a while"
+
 #Zip
 if [[ "${filesBackup}" == *.zip ]]
 then
@@ -244,6 +255,8 @@ then
     echo "Failed to extract ${filesBackup}" >&2
     #Delete the empty tmp dir
     exit -1
+else
+    echo "Files extracted OK"
 fi
 
 #Check the expected files exist in this backup
@@ -271,8 +284,11 @@ do
     fi
 done
 
+echo "Files restored OK"
+
 ##### END OF Restore Files #####
 
+echo "Backup $1 restored"
 echo "Old files stored in ${tmpReplacedOnDir}, delete when ready"
 
 ################# END OF Script Execution ###################
