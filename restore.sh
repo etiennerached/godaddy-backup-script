@@ -129,6 +129,42 @@ then
     exit -1
 fi
 
+##### Restore Databases #####
+for i in ${!dbName[@]}
+do
+    while true; do
+    read -p "Do you wish to restore database ${dbName[$i]} using backedup credentials file ${dbCnf[$i]}? [y/n] " yn
+        case $yn in
+            [Yy]* )
+                # use the credential file from the backup directory
+                mysqlCmd="mysql --defaults-extra-file=$1/$(basename ${dbCnf[$i]}) ${dbName[$i]}";
+                break;;
+            [Nn]* )
+                # enter the credentials manually
+                # first the host name (defaults to localhost)
+                read -p "Enter hostname [localhost]: " hostname
+                if [ -z ${hostname} ]
+                then
+                    hostname="localhost"
+                fi
+                # then the user name
+                read -p "Enter username: " username
+                mysqlCmd="mysql -h ${hostname} -u ${username} -p ${dbName[$i]}";
+                break;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+
+    #gzipped?
+    if [[ "${dbBackup[$i]}" == *.gz ]]
+    then
+        gunzip -c ${dbBackup[$i]} | ${mysqlCmd}
+    else
+        cat ${dbBackup[$i]} | ${mysqlCmd}
+    fi
+done
+##### END OF Backup Databases #####
+
 ##### restore Files #####
 
 #We first extract everything to a temporary directory
@@ -219,41 +255,6 @@ do
 done
 
 ##### END OF Restore Files #####
-
-##### Restore Databases #####
-for i in ${!dbName[@]}
-do
-    while true; do
-    read -p "Do you wish to restore database ${dbName[$i]} using backedup credentials file ${dbCnf[$i]}? [y/n] " yn
-        case $yn in
-            [Yy]* )
-                # use the credential file from the backup directory
-                mysqlCmd="mysql --defaults-extra-file=$1/$(basename ${dbCnf[$i]}) ${dbName[$i]}";
-                break;;
-            [Nn]* )
-                # enter the credentials manually
-                # first the host name (defaults to localhost)
-                read -p "Enter hostname [localhost]: " hostname
-                if [ -z ${hostname} ]
-                then
-                    hostname="localhost"
-                fi
-                # then the user name
-                read -p "Enter username: " username
-                mysqlCmd="mysql -h ${hostname} -u ${username} -p ${dbName[$i]}";
-                break;;
-            * ) echo "Please answer yes or no.";;
-        esac
-    done
-    #gzipped?
-    if [[ "${dbBackup[$i]}" == *.gz ]]
-    then
-        gunzip -c ${dbBackup[$i]} | ${mysqlCmd}
-    else
-        cat ${dbBackup[$i]} | ${mysqlCmd}
-    fi
-done
-##### END OF Backup Databases #####
 
 echo "Old files stored in ${tmpReplacedOnDir}, delete when ready"
 
