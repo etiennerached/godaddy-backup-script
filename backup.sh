@@ -25,112 +25,16 @@
 # https://github.com/andrewparlane
 # ***** END LICENSE BLOCK *****
 
-###################### Configuration ######################
-
-#Store the backups in the following directory
-#Note: Always backup your data outside of your public_html or html directory. This will ensure your backup files won't be accessed publicly from a browser.
-#Example:
-#backupDirectory="backup/mybackupfiles"
-backupDirectory="backup"
-
-##### Database Configuration #####
-#Databases Information
-#You can add as much databases information as you wish
-#The database information should be incremental and follow the below format:
-#############
-#dbHost[0]=''
-#dbName[0]=''
-#dbUser[0]=''
-#dbPass[0]=''
-#
-#dbHost[1]=''
-#dbName[1]=''
-#dbUser[1]=''
-#dbPass[1]=''
-#
-#dbHost[2]=''
-#dbName[2]=''
-#dbUser[2]=''
-#dbPass[2]=''
-#############
-#
-#
-#Example:
-##################################
-#dbHost[0]='localhost'
-#dbName[0]='database1'
-#dbUser[0]='user'
-#dbPass[0]='myhardtoguesspassword'
-#
-#dbHost[1]='db.domain.com'
-#dbName[1]='database1'
-#dbUser[1]='myusername'
-#dbPass[1]='ghjkkjh2678(27'
-##################################
-
-dbHost[0]=''
-dbName[0]=''
-dbUser[0]=''
-dbPass[0]=''
-
-#Compress Databases (On=1 / Off=0)
-compressDatabases=1
-
-##### Files Configuration #####
-#$HOME should by default hold the path of your user home directory, in case it doesn't, or if you want to backup a specific directory, you can define it below:
-#HOME="/var/www"
-
-#Directory (and its subdirectories) to backup. By Default, the godaddy public directory is called "html" or "public_html"
-#You can define more than one directory, this is useful mostly for MVC frameworks, where it's usually advisable to store the core framework outside of public_html
-#Example:
-#filesPath[0]='public_html'
-#filesPath[1]='yii'
-#filesPath[2]='anotherdir'
-filesPath[0]='public_html'
-
-
-#Archive files as Zip(0) or Tar(1)
-ZipOrTar=1
-
-#Compress Files in Archive? (On=1, Off=0)
-#Note: Godaddy scripts are usually interrupted after a specific time. Compressing/deflating the files will take more time to complete. Use zero if you have a huge website and the script is always interrupted.
-compressFiles=0
-
-#How many days should the backup remain locally before it's deleted. Set to 0 to disable it.
-deleteLocalOldBackupsAfter=60
-
-##### FTP Configuration #####
-#Note: Using FTP is not secure, use it at your own risk. Your password will be stored in this file in plain text, and can be read by a simple ps command upon execution by others.
-#Enable FTP Transfer (Yes=1 / No=0)
-enableFtpTransfer=0
-
-#Delete local files after uploading them to FTP (Yes=1 / No=0). This will only work if enableFtpTransfer is set to 1
-deleteFilesAfterTransfer=1
-
-#How many days should the backup remain in the ftp before it's deleted. Set to 0 to disable it. This will only work if enableFtpTransfer is set to 1
-deleteOldBackupsAfter=30
-
-#FTP Host - Fill the FTP details below. This is only required if enableFtpTransfer is set to 1
-FtpHost=''
-
-#FTP Port
-FtpPort=''
-
-#FTP User
-FtpUser=''
-
-#FTP Password
-FtpPass=''
-
-#FTP Path - Leave empty if you want to upload on the FTP root directory
-FtpPath=''
-
-################# End Of Configuration ###################
-
-
 ################# Script Execution ###################
 
 ###!!! Edit at your own risk !!!###
+
+#What directory is this script in?
+#We use this so we know where our config.sh and any db .cnf files are
+BASEDIR=$(dirname "$0")
+
+# Get our configuration
+. $BASEDIR/config.sh
 
 #Store Current Date
 Date=`date '+%Y-%m-%d_%H-%M'`
@@ -142,21 +46,51 @@ thisBackupDirectory="$backupDirectory/$Date"
 if [ ! -d "$HOME/$thisBackupDirectory" ]
 then
     mkdir -p $HOME/$thisBackupDirectory/
-    echo "Directory Created"
+    echo "Backup directory created: $HOME/$thisBackupDirectory/"
 fi
 
 ##### Backup Databases #####
-for i in ${!dbHost[@]}
+
+echo "Backing up databases"
+
+for i in ${!dbName[@]}
 do
-  if [ $compressDatabases -eq 1 ]
+  if [ -z ${dbName[$i]} ]
+  then
+    echo "dbName[$i] is empty, ignoring database" >&2
+  else
+    if [ -z ${dbCnf[$i]} ]
     then
-      filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql.gz"
-      mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} | gzip > ${filename[i]}
+      echo "dbCnf[$i] is empty, ignoring database" >&2
     else
+      echo "Attempting to backup database ${dbName[$i]}"
+
       filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql"
-      mysqldump -h ${dbHost[$i]} -u ${dbUser[$i]} -p${dbPass[$i]} ${dbName[$i]} > ${filename[i]}
+      mysqlCmd="mysqldump --defaults-extra-file=$BASEDIR/${dbCnf[$i]} ${dbName[$i]}"
+
+      # do it
+      ${mysqlCmd} > ${filename[i]}
+
+      # check the error status
+      if [ ! $? -eq 0 ]
+      then
+        echo "Failed to backup ${dbName[$i]}" >&2
+        rm ${filename[i]}
+      else
+        if [ $compressDatabases -eq 1 ]
+        then
+          #gzip it and delete the non gzipped version
+          cat ${filename[$i]} | gzip > ${filename[$i]}.gz
+          rm ${filename[$i]}
+        fi
+        echo "Backed up ${dbName[$i]} OK"
+      fi
+    fi
   fi
 done
+
+echo "Finished backing up databases"
+
 ##### END OF Backup Databases #####
 
 ##### Backup Files #####
@@ -164,41 +98,91 @@ toCompress=""
 
 for i in ${!filesPath[@]}
 do
-  toCompress+="$HOME/${filesPath[$i]}"
+  toCompress+="${filesPath[$i]}"
   toCompress+=" "
 done
+
+# resulting name of the archive containing the backed up files
+# not including the extension
+filesname="$HOME/$thisBackupDirectory/files_$Date"
+
+echo "Archiving ${toCompress}, this may take some time"
+
+archiveResult=1
 
 #Zip
 if [ $ZipOrTar -eq 0 ]
 then
+    # change directory to $HOME
+    pushd $HOME
+    # .zip
+    filesname+=".zip"
     if [ $compressFiles -eq 0 ]
     then
-        filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
-        zip -r -0 $filesname $toCompress
+        zip -q -r -0 $filesname $toCompress
     else
-        filesname="$HOME/$thisBackupDirectory/files_$Date.zip"
-        zip -r -9 $filesname $toCompress
+        zip -q -r -9 $filesname $toCompress
     fi
+    archiveResult=$?
+    # return to the previous directory
+    popd
 fi
 
 #Tar
 if [ $ZipOrTar -eq 1 ]
 then
+    filesname+=".tar"
     if [ $compressFiles -eq 0 ]
     then
-        filesname="$HOME/$thisBackupDirectory/files_$Date.tar"
-        tar -cvf $filesname $toCompress
+        tar -cf $filesname -C $HOME $toCompress
     else
-        filesname="$HOME/$thisBackupDirectory/files_$Date.tar.gz"
-        tar -zcvf $filesname $toCompress
+        filesname+=".gz"
+        tar -zcf $filesname -C $HOME $toCompress
     fi
+    archiveResult=$?
 fi
+
+#Check the result
+if [ ! $? -eq 0 ]
+then
+    echo "Failed to archive ${toCompress}" >&2
+else
+    echo "Backed up files OK"
+fi
+
 ##### END OF Backup Files #####
+
+##### Backup config #####
+
+echo "Backing up config files"
+
+#First the config.sh
+cp "$BASEDIR/config.sh" "$HOME/$thisBackupDirectory/"
+if [ ! $? -eq 0 ]
+then
+    echo "Failed to backup config.sh" >&2
+fi
+
+#Then the database .cnf files
+for i in ${!dbName[@]}
+do
+    if [ ! -z ${dbCnf[$i]} ]
+    then
+        cp "$BASEDIR/${dbCnf[$i]}" "$HOME/$thisBackupDirectory/"
+        if [ ! $? -eq 0 ]
+        then
+            echo "Failed to backup ${dbCnf[$i]}" >&2
+        fi
+    fi
+done
+
+##### END OF Backup config #####
 
 ######## FTP Transfer ########
 ##### Transfer Files #####
 if [ $enableFtpTransfer -eq 1 ]
 then
+    echo "Starting FTP transfer, this may take a while"
     if [ "$FtpPath" == "" ]
     then
         FtpPath="$Date"
@@ -215,6 +199,13 @@ prompt off
 mput *
 bye
 END
+
+#Check result
+if [ ! $? -eq 0 ]
+then
+    echo "Failed to transfer backup over FTP" >&2
+fi
+
 ##### END OF Transfer Files #####
 
 ##### Delete Old Backups #####
@@ -296,11 +287,13 @@ then
        	#echo "${lista[i]} - $dateDifferenceInDays"
         if [ $dateDifferenceInDays -gt $deleteLocalOldBackupsAfter ]
         then
-            echo "  deleting"
+            echo "deleting $HOME/$backupDirectory/${lista[i]} since it is older than ${deleteLocalOldBackupsAfter} days"
             rm -rf $HOME/$backupDirectory/${lista[i]}
         fi
     done
 fi #END OF if [ $deleteLocalOldBackupsAfter -gt 0 ]
 ##### END OF Delete local old backups #####
+
+echo "Backup completed"
 
 ################# END OF Script Execution ###################

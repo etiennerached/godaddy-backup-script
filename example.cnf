@@ -1,0 +1,4 @@
+[mysqldump]
+host     = localhost
+user     = user
+password = myhardtoguesspassword
