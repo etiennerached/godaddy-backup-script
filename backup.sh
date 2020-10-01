@@ -66,7 +66,7 @@ do
       echo "Attempting to backup database ${dbName[$i]}"
 
       filename[i]="$HOME/$thisBackupDirectory/${dbName[$i]}_$Date.sql"
-      mysqlCmd="mysqldump --defaults-extra-file=$BASEDIR/${dbCnf[$i]} ${dbName[$i]}"
+      mysqlCmd="mysqldump --defaults-extra-file=$BASEDIR/${dbCnf[$i]} --no-tablespaces ${dbName[$i]}"
 
       # do it
       ${mysqlCmd} > ${filename[i]}
